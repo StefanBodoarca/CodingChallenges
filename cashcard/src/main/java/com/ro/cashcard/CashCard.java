@@ -1,4 +1,4 @@
 package com.ro.cashcard;
 
-record CashCard(Long id, Double amount) {
+public record CashCard(Long id, Double amount) {
 }
