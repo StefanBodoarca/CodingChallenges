@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: stefanbodoarca
+      changes:
+        - insert:
+            tableName: notes
+            columns:
+              - column:
+                  name: title
+                  value: "note1"
+              - column:
+                  name: content
+                  value: "buy food"
+        - insert:
+            tableName: notes
+            columns:
+              - column:
+                  name: title
+                  value: "note2"
+              - column:
+                  name: content
+                  value: "finish app and check user guide"
+              # Add other values as needed
