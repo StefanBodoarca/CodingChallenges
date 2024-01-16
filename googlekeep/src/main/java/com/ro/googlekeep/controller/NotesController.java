@@ -28,6 +28,11 @@ public class NotesController {
         return note.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping()
+    private ResponseEntity<Iterable<NoteEntity>> findAllNotes() {
+        return ResponseEntity.ok(notesRepository.findAll());
+    }
+
     @PostMapping
     private ResponseEntity<Void> createCashCard(@RequestBody NoteEntity noteRequest,
                                                 UriComponentsBuilder ucb) {

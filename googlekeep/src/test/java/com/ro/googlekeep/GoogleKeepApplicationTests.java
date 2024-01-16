@@ -1,31 +1,44 @@
 package com.ro.googlekeep;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
 import com.ro.googlekeep.model.entities.NoteEntity;
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.assertj.core.api.Assertions.assertThat;
+/*
+how tests are isolated if we use the same container?
+ */
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebClient
+@Testcontainers
 class GoogleKeepApplicationTests {
-	@LocalServerPort
-	private int port;
 
 	@Autowired
-	WebTestClient webTestClient = WebTestClient
-			.bindToServer()
-			.baseUrl("https://localhost:%d".formatted(port))
-			.build();
+	WebTestClient webTestClient;
+
+	static final MySQLContainer<?> MY_SQL_CONTAINER;
+
+	static {
+		MY_SQL_CONTAINER = new MySQLContainer<>("mysql:latest");
+		MY_SQL_CONTAINER.start();
+	}
+
+	@DynamicPropertySource
+	static void configureTestProperties(DynamicPropertyRegistry registry){
+		registry.add("spring.datasource.url", MY_SQL_CONTAINER::getJdbcUrl);
+		registry.add("spring.datasource.username", MY_SQL_CONTAINER::getUsername);
+		registry.add("spring.datasource.password", MY_SQL_CONTAINER::getPassword);
+	}
 
 	@Test
 	void contextLoads() {
@@ -46,7 +59,6 @@ class GoogleKeepApplicationTests {
 	}
 
 	@Test
-	@Transactional
 	void shouldCreateANewNote() {
 		final String title = "testNote";
 		final String content = """
@@ -81,6 +93,19 @@ class GoogleKeepApplicationTests {
 				.jsonPath("id").isNotEmpty()
 				.jsonPath("title").isEqualTo(title)
 				.jsonPath("content").isEqualTo(content);
+	}
+
+	@Test
+	void shouldReturnAllNotes() {
+		webTestClient
+				.get()
+				.uri("/notes")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().valueEquals("Content-Type", "application/json")
+				.expectBody()
+				.jsonPath("$.length()").isEqualTo(2);
+
 	}
 
 }
